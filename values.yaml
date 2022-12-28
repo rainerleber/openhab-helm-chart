@@ -1,0 +1,85 @@
+labels: {}
+annotations: {}
+env:
+  - name: EXTRA_JAVA_OPTS
+    value: '-Duser.timezone=Europe/Berlin'
+  - name: TZ
+    value: Europe/Berlin
+
+image:
+  pullPolicy: IfNotPresent
+  repository: openhab/openhab
+  tag: 3.3.0
+
+securityContext:
+  capabilities:
+    drop:
+      - KILL
+      - MKNOD
+  runAsUser: 0
+
+persistence:
+  addons:
+    enabled: false
+    mountPath: /openhab/addons
+  conf:
+    enabled: false
+    mountPath: /openhab/conf
+  data:
+    enabled: true
+    subPath:
+      - mountPath: /openhab/addons
+        path: addons
+      - mountPath: /openhab/conf
+        path: conf
+      - mountPath: /openhab/userdata
+        path: userdata
+    accessMode: ReadWriteMany
+    retain: true
+    size: 5Gi
+    storageClass: nfs-client
+  userdata:
+    enabled: false
+    mountPath: /openhab/userdata
+
+service:
+  main:
+    ports:
+      http:
+        enabled: true
+        port: 8080
+        targetPort: 8080
+      https:
+        enabled: false
+        port: 8443
+        targetPort: 8443
+        
+probes:
+  liveness:
+    custom: false
+    enabled: true
+    spec:
+      failureThreshold: 3
+      initialDelaySeconds: 0
+      periodSeconds: 60
+      timeoutSeconds: 1
+  readiness:
+    custom: false
+    enabled: true
+    spec:
+      failureThreshold: 3
+      initialDelaySeconds: 0
+      periodSeconds: 60
+      timeoutSeconds: 1
+  startup:
+    custom: false
+    enabled: true
+    spec:
+      failureThreshold: 30
+      initialDelaySeconds: 0
+      periodSeconds: 60
+      timeoutSeconds: 1
+
+ingress:
+  enabled: ture
+  ingressClassName: 

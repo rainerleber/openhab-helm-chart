@@ -1,0 +1,58 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}
+  {{- with (merge (.Values.labels | default dict) (include "common.labels" $ | fromYaml)) }}
+  labels: {{- toYaml . | nindent 4 }}
+  {{- end }}
+  annotations:
+  {{- with (merge (.Values.annotations | default dict) (include "common.annotations" $ | fromYaml)) }}
+    {{ toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  {{- if .Values.clusterIP }}
+  clusterIP: {{ .Values.clusterIP }}
+  {{end}}
+  {{- if eq .Values.svcType "LoadBalancer" }}
+  type: "LoadBalancer"
+  {{- if .Values.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.loadBalancerIP }}
+  {{- else }}
+  type: {{ .Values.svcType }}
+  {{- end }}
+  {{- with .Values.externalIPs }}
+  externalIPs:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- if .Values.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ .Values.ipFamilyPolicy }}
+  {{- end }}
+  {{- with .Values.ipFamilies }}
+  ipFamilies:
+    {{ toYaml . | nindent 4 }}
+  {{- end }}
+  ports:
+  {{- range $name, $port := .Values.ports }}
+  {{- if $port.enabled }}
+  - port: {{ $port.port }}
+    targetPort: {{ $port.targetPort | default $name }}
+    {{- if $port.protocol }}
+    {{- if or ( eq $port.protocol "HTTP" ) ( eq $port.protocol "HTTPS" ) ( eq $port.protocol "TCP" ) }}
+    protocol: TCP
+    {{- else }}
+    protocol: {{ $port.protocol }}
+    {{- end }}
+    {{- else }}
+    protocol: TCP
+    {{- end }}
+    name: {{ $name }}
+    {{- if (and (eq .Values.svcType "NodePort") (not (empty $port.nodePort))) }}
+    nodePort: {{ $port.nodePort }}
+    {{ end }}
+  {{- end }}
+  {{- end }}
+  selector:
+    {{- include "common.labels.selectorLabels" . | nindent 4 }}
+{{- end }}
